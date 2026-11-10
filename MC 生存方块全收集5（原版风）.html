@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的世界全物品收集</title>
+<style>
+*{box-sizing:border-box}
+body{
+  background:linear-gradient(135deg,#0f2027,#203a43,#2c5364,#1a1a2e,#16213e,#0f3460);
+  background-size:400% 400%;
+  animation:gradientShift 20s ease infinite;
+  color:#e0e0e0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  padding:14px;margin:0;min-height:100vh;
+}
+@keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+h1{text-align:center;color:#8fee8f;font-size:22px;margin:6px 0;text-shadow:0 0 20px rgba(143,238,143,.3)}
+.tip{text-align:center;color:#aaa;font-size:12px;margin-bottom:10px}
+.bar{
+  background:rgba(255,255,255,.08);backdrop-filter:blur(20px) saturate(1.4);
+  -webkit-backdrop-filter:blur(20px) saturate(1.4);
+  border:1px solid rgba(255,255,255,.18);border-radius:14px;
+  padding:14px;text-align:center;margin-bottom:12px;font-size:14px;
+  box-shadow:0 4px 24px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.1);
+}
+.bar b{color:#8fee8f;font-size:20px;text-shadow:0 0 10px rgba(143,238,143,.5)}
+#search{
+  width:100%;padding:12px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.06);backdrop-filter:blur(16px);color:#eee;
+  margin-bottom:14px;font-size:14px;outline:none;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+}
+#search::placeholder{color:#888}
+.cat{color:#ffd479;font-weight:bold;margin:16px 0 10px;font-size:15px;text-shadow:0 0 8px rgba(255,212,121,.3)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.item{
+  background:rgba(255,255,255,.07);backdrop-filter:blur(16px) saturate(1.3);
+  -webkit-backdrop-filter:blur(16px) saturate(1.3);
+  border:1.5px solid rgba(255,255,255,.15);border-radius:12px;
+  padding:10px 8px;text-align:center;font-size:12px;cursor:pointer;user-select:none;
+  position:relative;transition:all .25s ease;
+  box-shadow:0 2px 12px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.08);
+}
+.item:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.3);box-shadow:0 6px 20px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.12)}
+.item.have{border-color:#4caf50;background:rgba(76,175,80,.15);color:#bfe9bf;box-shadow:0 0 12px rgba(76,175,80,.25),inset 0 1px 0 rgba(255,255,255,.08)}
+.item.have .sw{box-shadow:0 0 8px rgba(76,175,80,.4)}
+.sw{width:36px;height:36px;margin:0 auto 6px;border:1px solid rgba(0,0,0,.5);border-radius:4px;image-rendering:pixelated;transition:box-shadow .25s ease}
+.info-btn{
+  position:absolute;top:4px;right:4px;width:18px;height:18px;border-radius:50%;
+  background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);
+  color:#ccc;font-size:10px;line-height:16px;text-align:center;cursor:pointer;
+  transition:all .2s;
+}
+.info-btn:hover{background:rgba(255,255,255,.3);color:#fff}
+.hidden{display:none}
+.modal-overlay{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,.6);backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:center;z-index:999;
+  opacity:0;pointer-events:none;transition:opacity .3s;
+}
+.modal-overlay.active{opacity:1;pointer-events:all}
+.modal{
+  background:rgba(30,30,40,.95);backdrop-filter:blur(30px);
+  border:1px solid rgba(255,255,255,.2);border-radius:16px;
+  padding:24px;max-width:380px;width:90%;max-height:70vh;overflow-y:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,.5);
+}
+.modal h3{color:#8fee8f;margin:0 0 8px;font-size:16px}
+.modal .source-tag{
+  display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;margin:4px 4px 4px 0;
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#ccc;
+}
+.modal p{color:#bbb;font-size:13px;line-height:1.7;margin:8px 0}
+.modal .close-btn{
+  position:absolute;top:12px;right:16px;width:28px;height:28px;border-radius:50%;
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
+  color:#ccc;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+}
+.modal .close-btn:hover{background:rgba(255,255,255,.2);color:#fff}
+.modal-wrap{position:relative}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.toolbar button{
+  padding:8px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.08);backdrop-filter:blur(10px);color:#eee;
+  font-size:12px;cursor:pointer;transition:all .2s;
+}
+.toolbar button:hover{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.35)}
+.notice-btn{
+  position:fixed;top:14px;right:14px;width:36px;height:36px;border-radius:50%;
+  background:rgba(255,255,255,.1);backdrop-filter:blur(16px);
+  border:1px solid rgba(255,255,255,.25);color:#8fee8f;font-size:18px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  z-index:100;transition:all .25s;box-shadow:0 2px 12px rgba(0,0,0,.3);
+}
+.notice-btn:hover{background:rgba(255,255,255,.2);transform:scale(1.1)}
+.notice-dot{
+  position:absolute;top:4px;right:4px;width:10px;height:10px;border-radius:50%;
+  background:#ff4d4d;box-shadow:0 0 6px rgba(255,77,77,.6);animation:pulse 2s infinite;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.notice-modal{
+  background:rgba(30,30,40,.96);backdrop-filter:blur(30px);
+  border:1px solid rgba(255,255,255,.2);border-radius:16px;
+  padding:24px;max-width:400px;width:90%;max-height:75vh;overflow-y:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,.5);
+}
+.notice-modal h3{color:#8fee8f;margin:0 0 14px;font-size:17px}
+.notice-modal ul{color:#ccc;font-size:13px;line-height:2;padding-left:18px;margin:0}
+.notice-modal li{margin-bottom:4px}
+.notice-modal .ver{color:#ffd479;font-size:12px;margin-bottom:10px;display:block}
+.tabs{display:flex;gap:8px;margin-bottom:14px}
+.tab{
+  flex:1;padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.06);backdrop-filter:blur(10px);color:#ccc;
+  font-size:14px;cursor:pointer;text-align:center;transition:all .25s;
+}
+.tab.active{background:rgba(143,238,143,.15);border-color:rgba(143,238,143,.4);color:#8fee8f;font-weight:bold}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.guide-stage{
+  background:rgba(255,255,255,.06);backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.12);border-radius:12px;
+  padding:14px;margin-bottom:12px;
+}
+.guide-stage h3{color:#ffd479;font-size:15px;margin:0 0 8px}
+.guide-stage p,.guide-stage li{color:#ccc;font-size:13px;line-height:1.7}
+.guide-stage ul{padding-left:18px;margin:6px 0}
+.tip-box{background:rgba(143,238,143,.08);border-left:3px solid #8fee8f;padding:8px 12px;border-radius:0 8px 8px 0;margin:8px 0;font-size:12px;color:#bfe9bf}
+.warn-box{background:rgba(255,77,77,.08);border-left:3px solid #ff4d4d;padding:8px 12px;border-radius:0 8px 8px 0;margin:8px 0;font-size:12px;color:#ff9999}
+.enchant-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.enchant-card{
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  border-radius:8px;padding:10px;font-size:12px;color:#ccc;
+}
+.enchant-card h4{color:#8fee8f;margin:0 0 4px;font-size:13px}
+.potion-grid{display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px}
+.potion-card{
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  border-radius:8px;padding:10px;font-size:12px;color:#ccc;
+}
+.potion-card h4{color:#7fc6ff;margin:0 0 4px;font-size:13px}
+.achievement-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px;color:#ccc}
+.achievement-item input[type="checkbox"]{accent-color:#8fee8f;width:16px;height:16px}
+@media(max-width:480px){.grid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr))}.enchant-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="notice-btn" onclick="showNotice()">📢<span class="notice-dot" id="noticeDot"></span></div>
+
+<div class="modal-overlay" id="noticeModal">
+  <div class="notice-modal">
+    <div class="modal-wrap">
+      <div class="close-btn" onclick="closeNotice()">×</div>
+      <h3>📢 更新公告</h3>
+      <span class="ver">v5.0</span>
+      <ul>
+        <li>✅ 页面分为两个标签页：全物品收集 + 生存指南</li>
+        <li>📖 新增生存指南（8阶段标准通关教程）</li>
+        <li>⚔️ 附魔推荐速查（各部位最佳组合）</li>
+        <li>🧪 药水酿造速查（配方与用途）</li>
+        <li>💡 实用技巧汇总（老玩家经验）</li>
+        <li>🏆 通关成就清单（18项里程碑）</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-wrap">
+      <div class="close-btn" onclick="closeModal()">×</div>
+      <h3 id="modalTitle"></h3>
+      <div id="modalTags"></div>
+      <p id="modalDesc"></p>
+    </div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('collectTab',this)">📦 我的世界全物品收集</div>
+  <div class="tab" onclick="switchTab('guideTab',this)">📖 生存指南</div>
+</div>
+
+<div id="collectTab" class="tab-content active">
+<div class="bar">进度：<b id="rate">0%</b>（<span id="cnt">0</span>/<span id="total">0</span>）</div>
+<div class="toolbar">
+  <button onclick="toggleAll()">展开/折叠</button>
+  <button onclick="markAll()">全部标记</button>
+  <button onclick="clearAll()">清空</button>
+  <button onclick="exportData()">导出进度</button>
+  <button onclick="importData()">导入进度</button>
+  <input type="file" id="fileInput" accept=".json" style="display:none" onchange="handleImport(event)">
+</div>
+<input id="search" placeholder="搜索物品名或获取方式，比如 精准采集 / 堡垒 / 下界 / 锋利">
+<div id="app"></div>
+</div>
+
+<div id="guideTab" class="tab-content">
+<div class="guide-stage">
+  <h3>🌅 第一阶段：第一天生存</h3>
+  <ul>
+    <li>收集木头（至少3-4棵），合成工作台和木镐</li>
+    <li>挖圆石合成石镐、石剑、熔炉</li>
+    <li>杀羊/兔子获取皮革（做书），杀鸡获取羽毛</li>
+    <li>天黑前找高地或挖三填一避难</li>
+    <li>用木棍+煤炭/木炭做火把照明</li>
+  </ul>
+  <div class="tip-box">💡 第一天优先做床！床可以跳过夜晚，3个羊毛+3个木板</div>
+</div>
+<div class="guide-stage">
+  <h3>⛏️ 第二阶段：石器到铁器</h3>
+  <ul>
+    <li>挖铁矿（Y=1~63），用熔炉烧炼成铁锭</li>
+    <li>铁镐→挖钻石（Y=-58附近最佳）</li>
+    <li>铁盔甲全套→减少早期死亡风险</li>
+    <li>建一个安全的基地（围墙+照明+箱子）</li>
+    <li>种田：小麦/胡萝卜/马铃薯，保证食物来源</li>
+  </ul>
+  <div class="tip-box">💡 铁桶装水可以灭火、造无限水源、刷石机</div>
+</div>
+<div class="guide-stage">
+  <h3>💎 第三阶段：钻石装备</h3>
+  <ul>
+    <li>分支矿井（2格宽走廊，每3格挖探槽）是找钻石最高效的方法</li>
+    <li>优先做钻石镐（挖黑曜石）和钻石剑</li>
+    <li>收集至少10颗钻石：3把镐+1把剑+附魔台用</li>
+    <li>做附魔台（书×3+钻石×2+黑曜石×4）</li>
+    <li>用30级附魔给装备附魔</li>
+  </ul>
+  <div class="warn-box">⚠️ 钻石矿附近可能有岩浆，带桶水防身</div>
+</div>
+<div class="guide-stage">
+  <h3>🌋 第四阶段：下界探索</h3>
+  <ul>
+    <li>用黑曜石（至少10个）建下界传送门（4×5框架）</li>
+    <li>下界要带：金盔甲（防猪灵）、弓/弩、火抗药水</li>
+    <li>找下界要塞（堡垒遗迹）→ 获取烈焰棒+凋零骷髅头</li>
+    <li>收集下界石英、金锭、远古残骸（Y=8-22）</li>
+    <li>用烈焰棒合成烈焰粉→做末影之眼</li>
+  </ul>
+  <div class="warn-box">⚠️ 下界岩浆到处都是，穿金靴子防猪灵主动攻击</div>
+</div>
+<div class="guide-stage">
+  <h3>👁️ 第五阶段：找到要塞 & 末地</h3>
+  <ul>
+    <li>用末影之眼（末影珍珠+烈焰粉）定位要塞</li>
+    <li>要塞里有图书馆（书架）、末地传送门房间</li>
+    <li>在末地传送门框架放上末影之眼（需要12个，但框架已有部分）</li>
+    <li>准备：弓+无限/力量+箭、钻石盔甲、金苹果×3、水桶</li>
+  </ul>
+  <div class="tip-box">💡 末影箱可以跨维度存取物品，下界和末地都能用</div>
+</div>
+<div class="guide-stage">
+  <h3>🐉 第六阶段：击败末影龙</h3>
+  <ul>
+    <li>进入末地后先躲在柱子后面，等龙飞走再行动</li>
+    <li>用弓箭射爆末影水晶（黑曜石柱子顶上的回血源）</li>
+    <li>水晶爆完后再和龙正面打，钻石剑+力量药水</li>
+    <li>龙落地时猛攻，注意躲避龙息（可以装瓶）</li>
+    <li>击败后跳进返回传送门回到主世界</li>
+  </ul>
+  <div class="warn-box">⚠️ 末影人会在末地攻击你，穿头盔或水防止被推下虚空</div>
+</div>
+<div class="guide-stage">
+  <h3>🦅 第七阶段：外岛 & 鞘翅</h3>
+  <ul>
+    <li>击败末影龙后，通过末地折跃门到达外岛</li>
+    <li>找末地城（高塔建筑），里面有紫珀块和潜影贝</li>
+    <li>末地船在末地城附近，里面有鞘翅和龙首</li>
+    <li>鞘翅+烟花火箭=飞行！（注意摔落伤害）</li>
+    <li>收集潜影壳（做潜影盒，额外27格存储空间）</li>
+  </ul>
+  <div class="tip-box">💡 潜影贝被攻击会 teleport，用弓箭远程打最安全</div>
+</div>
+<div class="guide-stage">
+  <h3>🔥 第八阶段：下界合金 & 凋灵</h3>
+  <ul>
+    <li>下界 Y=8-22 用床爆破法找远古残骸（4个）</li>
+    <li>远古残骸烧炼得下界合金碎片，+金锭合成下界合金锭</li>
+    <li>锻造台将钻石装备升级为下界合金装备（不掉虚空！）</li>
+    <li>凋灵：灵魂沙T型+凋零骷髅头×3，在远离基地的地方召唤</li>
+    <li>击败凋灵获得下界之星→做信标（永久增益）</li>
+  </ul>
+  <div class="warn-box">⚠️ 凋灵炸毁方块，不要在基地旁边打！带力量药水+金苹果</div>
+</div>
+<div class="guide-stage">
+  <h3>⚔️ 附魔推荐速查</h3>
+  <div class="enchant-grid">
+    <div class="enchant-card"><h4>🗡️ 武器（剑/弓/弩）</h4>锋利V / 抢夺III / 横扫之刃III<br>火焰附加II / 击退II<br>弓：力量V / 无限 / 火矢<br>弩：快速装填III / 穿透IV</div>
+    <div class="enchant-card"><h4>🛡️ 头盔</h4>保护IV / 水下呼吸III<br>深海探索者III / 荆棘III<br>耐久III / 经验修补</div>
+    <div class="enchant-card"><h4>👕 胸甲</h4>保护IV / 荆棘III<br>耐久III / 经验修补</div>
+    <div class="enchant-card"><h4>👖 腿甲 & 靴子</h4>保护IV / 摔落保护IV（靴）<br>灵魂疾行III / 深海探索者III<br>耐久III / 经验修补</div>
+    <div class="enchant-card"><h4>⛏️ 工具</h4>效率V / 精准采集 或 时运III<br>耐久III / 经验修补</div>
+    <div class="enchant-card"><h4>🎣 钓鱼竿/三叉戟</h4>饵钓III / 海之眷顾III<br>忠诚III / 激流III / 引雷</div>
+  </div>
+</div>
+<div class="guide-stage">
+  <h3>🧪 药水酿造速查</h3>
+  <div class="potion-grid">
+    <div class="potion-card"><h4>🔴 战斗必备</h4>力量II（烈焰粉+粗制）→ 伤害翻倍 | 瞬间治疗II（闪烁西瓜）→ 紧急回血 | 防火（岩浆膏）→ 下界/末地必备</div>
+    <div class="potion-card"><h4>🔵 探索必备</h4>夜视（金胡萝卜）→ 洞穴/水下 | 水下呼吸（海龟壳）→ 海底神殿 | 缓降水（幻翼膜）→ 建高塔/末地外岛</div>
+    <div class="potion-card"><h4>🟢 辅助必备</h4>迅捷II（糖）→ 赶路 | 跳跃（兔子脚）→ 跨地形 | 再生（恶魂之泪）→ 持续回血 | 隐身（金胡萝卜+发酵蛛眼）→ 潜行</div>
+    <div class="potion-card"><h4>🟣 喷溅/滞留</h4>喷溅药水（火药）= 扔给队友/自己脚下 | 滞留药水（龙息）= 范围持续效果</div>
+  </div>
+</div>
+<div class="guide-stage">
+  <h3>💡 实用技巧汇总</h3>
+  <ul>
+    <li>床在下界/末地爆炸威力巨大，可当TNT用（挖远古残骸神器）</li>
+    <li>盾牌可以格挡所有弹射物（箭、火球、龙息）</li>
+    <li>铁傀儡农场：4个铁块+1个南瓜头，自动产铁</li>
+    <li>村民交易：绿宝石换钻石装备/附魔书，后期最强获取方式</li>
+    <li>末影珍珠+水=快速垂直移动（珍珠丢脚下+水垫）</li>
+    <li>蜂蜜块+黏液块可以消减摔落伤害</li>
+    <li>营火+干草捆=快速驯马/繁殖</li>
+    <li>命名牌给生物命名=防止消失（重要坐骑/宠物）</li>
+    <li>末影箱+潜影盒=64×27×2=3456格额外存储</li>
+    <li>信标+下界合金腿甲=速度II永久增益</li>
+    <li>钓鱼是前期获取附魔书/鞍/命名牌最快的方式</li>
+    <li>猪灵以物易物：金锭换末影珍珠/哭泣黑曜石/黑石等</li>
+    <li>细雪桶可以困住大部分生物（包括末影人！）</li>
+    <li>紫颂果可以瞬移脱困（末地外岛神器）</li>
+  </ul>
+</div>
+<div class="guide-stage">
+  <h3>🏆 通关成就清单</h3>
+  <div id="achievements"></div>
+</div>
+</div>
+
+<script>
+const groups = [
+["自然/地质",[
+["草方块","#7ab77b","精准采集镐挖取；末影人掉落"],["泥土","#8b5a2b","直接挖掘；草方块无精准也掉落"],["砂土","#c2a36b","沙+砾石合成；沙漠/恶地生成"],["灰化土","#9aa06b","针叶林生物群系生成，精准采集"],["菌丝体","#9b7fb0","蘑菇岛生成，精准采集锹"],["沙子","#e0d79a","挖掘沙滩/沙漠；无精准掉落"],["红沙","#b5613a","恶地生物群系挖掘"],["沙砾","#8a8a8a","挖掘地下/海滩；10%掉落燧石"],["石头","#888888","精准采集镐挖石头；圆石烧炼"],["圆石","#7d7d7d","镐挖石头（无精准）"],["花岗岩","#b08a72","地下生成；圆石+闪长岩合成"],["磨制花岗岩","#caa78f","4个花岗岩合成"],["闪长岩","#9a9a8f","地下生成；圆石+石英合成"],["磨制闪长岩","#bcbcae","4个闪长岩合成"],["安山岩","#8f8f86","地下生成；圆石+闪长岩合成"],["磨制安山岩","#aaaa9f","4个安山岩合成"],["深板岩","#2f2f37","Y=0以下挖掘，精准采集"],["深板岩圆石","#3a3a44","镐挖深板岩（无精准）"],["磨制深板岩","#4a4a55","4个深板岩合成"],["凝灰岩","#b9b2a3","洞穴生成"],["方解石","#efe9dd","紫晶洞/山峰生成"],["滴水石块","#9c8f7a","钟乳洞生成"],["滴水石锥","#b7a98f","钟乳洞生成；滴水石块+滴水石锥合成"],["玄武岩","#3b3b46","下界三角洲生成"],["平滑玄武岩","#4a4a57","烧炼玄武岩"],["砂岩","#dcd09a","沙漠生成；4个沙子合成"],["雕纹砂岩","#d2c48c","砂岩合成变体"],["平滑砂岩","#e6dcae","烧炼砂岩"],["切制砂岩","#d8cb94","砂岩合成变体"],["红砂岩","#c87a4f","恶地生成；4个红沙合成"],["雕纹红砂岩","#bd6f44","红砂岩合成变体"],["平滑红砂岩","#d98a5c","烧炼红砂岩"],["冰","#bfe9ff","冻洋/冰刺平原生成"],["浮冰","#a9dcff","冰刺平原生成"],["蓝冰","#7fc6ff","北极狐村庄；浮冰合成"],["雪块","#f5f5f5","雪原生成；4个雪球合成"],["灵魂沙","#9a8b6b","下界灵魂沙谷挖掘"],["灵魂土","#5a4a35","下界灵魂沙谷挖掘"],["下界岩","#5a3a3a","下界到处生成"],["黑曜石","#1b1140","水+岩浆源接触；钻石镐挖掘"],["哭泣的黑曜石","#2a1a55","堡垒废墟宝箱"],["荧石","#e8d36b","下界天花板挖掘，掉荧石粉"],["岩浆块","#b3451a","下界岩浆湖底"],["末地石","#d8d2b0","末地岛生成"],["紫水晶块","#c79bff","紫晶洞内挖掘"],["骨块","#ece6d2","骨头×9合成"],["黏土块","#9a6b4f","河底挖掘黏土球，4个合成"],["泥巴","#6e5238","沼泽/红树林挖掘"],["泥砖","#7c5a3e","泥巴+小麦合成"],["苔藓块","#5f7a3a","繁茂洞穴生成"],["覆地苔藓","#6f8a45","繁茂洞穴生成"],["海绵","#e6d98a","海底神殿宝箱/远古守卫者掉落"],["湿海绵","#9bbf8a","海底神殿内"],["海晶石","#5fa9a0","海底神殿挖掘"],["暗海晶石","#3f7d76","海底神殿挖掘"],["海晶石砖","#4f938b","海晶石合成"],["海泡菜","#7fe0b0","繁茂洞穴/海底生成"]
+]],["矿石/矿物块",[
+["煤矿石","#3a3a3a","地下挖掘，掉落煤炭"],["深层煤矿石","#2c2c2c","深层地下挖掘"],["铁矿石","#b08a6a","地下挖掘，烧炼得铁锭"],["深层铁矿石","#8f6f53","深层地下挖掘"],["铜矿石","#b9743f","地下挖掘，烧炼得粗铜"],["深层铜矿石","#92592f","深层地下挖掘"],["金矿石","#e0c24a","地下/恶地挖掘，烧炼得金锭"],["深层金矿石","#b89a35","深层地下挖掘"],["红石矿石","#a23b3b","地下挖掘，无精准掉红石粉"],["深层红石矿石","#822e2e","深层地下挖掘"],["青金石矿石","#2f4fd0","地下挖掘，掉落青金石"],["深层青金石矿石","#263fa6","深层地下挖掘"],["绿宝石矿石","#36c07a","山地生物群系挖掘"],["深层绿宝石矿石","#279a60","深层地下挖掘"],["钻石矿石","#54e0ef","Y=-64附近挖掘"],["深层钻石矿石","#3fb6c4","深层地下挖掘"],["下界金矿石","#caa83a","下界挖掘"],["下界石英矿石","#e8e2cf","下界挖掘，掉石英"],["远古残骸","#43372f","下界Y=8-22，钻石镐+床爆/苔石爆破"],["煤炭块","#222222","煤炭×9合成"],["铁块","#d8d8d8","铁锭×9合成"],["金块","#ffe04a","金锭×9合成"],["钻石块","#5ff0ff","钻石×9合成"],["绿宝石块","#3df08a","绿宝石×9合成"],["青金石块","#3a55ff","青金石×9合成"],["红石块","#ff4d4d","红石粉×9合成"],["铜块","#d98a4a","铜锭×9合成"],["下界合金块","#4a4452","下界合金碎片×9合成"],["石英块","#f0ece0","下界石英×4合成"],["雕纹石英块","#e6e1d2","石英块合成变体"],["石英柱","#efe9da","石英块合成变体"],["平滑石英块","#f5f1e6","烧炼石英块"],["粗铁块","#9a9a9a","粗铁×9合成"],["粗金块","#caa83a","粗金×9合成"],["粗铜块","#a9693a","粗铜×9合成"]
+]],["木材/植物",[
+["橡木原木","#7a5a32","橡树挖掘"],["白桦原木","#d8c79a","白桦树挖掘"],["丛林原木","#7c6038","丛林树挖掘"],["金合欢原木","#9a7340","金合欢树挖掘"],["深色橡木原木","#5a4326","深色橡树挖掘"],["红树木头","#7a3f2e","红树林挖掘"],["樱花原木","#e7b6c8","樱花树挖掘"],["竹块","#bcd07a","竹子合成"],["竹马赛克","#a9c06c","竹块合成"],["橡木木板","#b5894f","橡木原木合成"],["白桦木板","#dcc88e","白桦原木合成"],["丛林木板","#b08a4f","丛林原木合成"],["金合欢木板","#caa05a","金合欢原木合成"],["深色橡木木板","#7a5a32","深色橡木原木合成"],["红树木板","#a85a40","红树木头合成"],["樱花木板","#e7c2d2","樱花原木合成"],["橡树叶","#4f9a4f","橡树砍伐掉落"],["白桦树叶","#6fb56f","白桦树砍伐掉落"],["丛林树叶","#3f8f3f","丛林树砍伐掉落"],["金合欢树叶","#5fae5f","金合欢树砍伐掉落"],["深色橡树叶","#356035","深色橡树砍伐掉落"],["红树树叶","#7a3f3f","红树林砍伐掉落"],["樱花树叶","#f0b8d0","樱花树砍伐掉落"],["橡树苗","#6fae4f","橡树叶掉落"],["白桦树苗","#8fd06f","白桦树叶掉落"],["丛林树苗","#5f9a3f","丛林树叶掉落"],["金合欢树苗","#9ad06f","金合欢树叶掉落"],["深色橡树苗","#4f7a3f","深色橡树叶掉落"],["红树胎生苗","#a85a40","红树树叶掉落"],["竹子","#9bd06a","竹林挖掘"],["竹笋","#cfe0a0","竹林挖掘"],["甘蔗","#9fd06a","河边/沙滩种植收获"],["仙人掌","#4faf4f","沙漠挖掘"],["藤蔓","#5f9a4f","丛林砍伐掉落"],["睡莲","#3f8f6f","沼泽水面采集"],["高草丛","#6fae4f","草方块上采集"],["蕨","#4f9a4f","针叶林/沼泽采集"],["大型蕨","#3f8f3f","针叶林/沼泽采集"],["杜鹃花丛","#6fae5f","杜鹃树附近采集"],["盛开的杜鹃花丛","#e88fae","杜鹃花丛骨粉催开"],["蘑菇方块","#caa46a","菌丝体上精准采集"],["红蘑菇","#c0392b","黑暗处采集"],["棕蘑菇","#8a5a3a","黑暗处采集"],["发光地衣","#9fe0a0","洞穴采集"],["垂滴叶","#5f9a4f","繁茂洞穴采集"],["孢子花","#caa0e0","下界绯红森林采集"],["可可果","#7a4a2a","丛林树木上采集"],["西瓜","#c0392b","西瓜梗成熟后采集"],["南瓜","#e0922a","南瓜梗成熟后采集"],["雕刻南瓜","#caa046","南瓜+剪刀合成"],["南瓜灯","#ffd84a","南瓜+火把合成"],["小麦","#d8c24a","农田收获"],["胡萝卜","#e0922a","农田收获"],["马铃薯","#caa46a","农田收获"],["甜菜根","#9a2a2a","农田收获"],["甜浆果丛","#7a2a4a","针叶林采集"],["海草","#2f8f6f","水中采集"],["海带","#3f9a7a","水中采集"],["干海带块","#9a7a3a","干海带×9合成"],["干草捆","#d8c24a","小麦×9合成"],["花（16色）","#e85a7a","各生物群系采集"],["莲花","#e87aaa","沼泽采集"],["青蛙卵","#bfe0a0","青蛙繁殖生成"]
+]],["砖/石砖/建筑",[
+["红砖块","#a14b32","黏土球烧炼得红砖×9合成"],["石砖","#9a9a9a","石头烧炼后合成"],["裂纹石砖","#8a8a8a","石砖烧炼"],["雕纹石砖","#b0b0b0","石砖合成变体"],["苔石","#7e8a5a","石砖+藤蔓合成"],["苔石砖","#6f7a4a","苔石合成"],["深板岩砖","#34343e","深板岩烧炼后合成"],["深板岩瓦","#3e3e49","深板岩砖合成变体"],["裂纹深板岩砖","#2c2c36","深板岩砖烧炼"],["凝灰岩砖","#b3ab9b","凝灰岩合成"],["雕纹凝灰岩砖","#c2b9a8","凝灰岩合成变体"],["下界砖块","#6a2f2f","下界岩烧炼得下界砖×4合成"],["裂纹下界砖","#5a2727","下界砖烧炼"],["雕纹下界砖","#7a3535","下界砖合成变体"],["红色下界砖","#8a3a2a","下界疣块+下界砖合成"],["磨制黑石","#3a3a44","黑石烧炼"],["雕纹磨制黑石","#47474f","磨制黑石合成变体"],["黑石","#2f2f38","下界生成"],["镶金黑石","#5a4a2a","下界堡垒生成"],["磨制黑石砖","#43434d","磨制黑石合成"],["裂纹磨制黑石砖","#39393f","磨制黑石砖烧炼"],["末地石砖","#cfc8a8","末地石合成"],["海晶灯","#7fe0d0","海晶石+荧石合成"],["紫珀块","#b07ad0","末地城生成"],["紫珀柱","#bd86db","紫珀块合成"],["石英砖","#f0ece0","石英块合成变体"],["陶瓦","#b56a3a","黏土块烧炼"],["带釉陶瓦（各色）","#c0392b","染色陶瓦烧炼"],["混凝土","#dddddd","混凝土粉末+水"],["混凝土粉末","#d8d8d8","沙子+砾石+染料合成"],["玻璃","#bfe9ff","沙子烧炼"],["染色玻璃（16色）","#7fc6ff","玻璃+染料合成"],["玻璃板","#a9dcff","玻璃×6合成"],["遮光玻璃","#cfd8e0","玻璃+紫颂果合成"]
+]],["红石/机械/功能",[
+["工作台","#9a6a36","木板×4合成"],["熔炉","#8a8a8a","圆石×8合成"],["高炉","#9a9a9a","熔炉+铁锭+平滑石头合成"],["烟熏炉","#7a6a4a","熔炉+木头合成"],["切石机","#9a9a9a","铁锭+圆石合成"],["砂轮","#b0a070","木棍+石头+木板合成"],["织布机","#8a6a4a","木板+线合成"],["制图台","#9a7a4a","木板+纸张合成"],["锻造台","#7a5a3a","木板+铁锭合成"],["制箭台","#8a6a3a","木板+燧石合成"],["附魔台","#3a2f5a","黑曜石+钻石+书合成"],["酿造台","#6a4a3a","圆石+烈焰棒合成"],["书架","#9a6a36","木板+书合成"],["雕纹书架","#a8743a","木板+书合成变体"],["箱子","#9a6a36","木板×8合成"],["陷阱箱","#8a5a2e","箱子+绊线钩合成"],["末影箱","#3a2f6a","黑曜石+末影之眼合成"],["潜影盒（各色）","#7a5aa0","潜影壳+箱子合成"],["桶","#9a6a36","铁锭×3合成"],["红石火把","#ff4d4d","红石粉+木棍合成"],["红石粉","#d63a3a","红石矿石掉落"],["红石灯","#ffd84a","荧石+红石粉合成"],["中继器","#b0a070","红石粉+石头+红石火把合成"],["比较器","#b0a070","红石粉+石头+石英合成"],["活塞","#b0a070","圆石+木板+铁锭+红石粉合成"],["黏性活塞","#9a8a55","活塞+黏液球合成"],["观察者","#9a9a9a","圆石+石英+红石粉合成"],["发射器","#8a8a8a","圆石+弓+红石粉合成"],["投掷器","#7a7a7a","圆石+红石粉合成"],["漏斗","#9a9a9a","铁锭+箱子合成"],["杠杆","#b0a070","木棍+圆石合成"],["按钮（木/石/磨制黑石）","#8a8a8a","对应材料合成"],["压力板（木/石/重/轻）","#9a9a9a","对应材料合成"],["门（木/铁/铜）","#9a6a36","对应材料合成"],["活板门（木/铁/铜）","#9a6a36","对应材料合成"],["栅栏（木/网）","#9a6a36","木棍+对应材料合成"],["栅栏门","#9a6a36","木棍+对应材料合成"],["墙（石/砖/黑石）","#8a8a8a","石头类材料×6合成"],["铁轨","#b0b0b0","铁锭+木棍合成"],["动力铁轨","#d6a04a","铁锭+金锭+红石粉合成"],["探测铁轨","#b0a070","铁锭+石压+红石粉合成"],["激活铁轨","#c06a6a","铁锭+红石火把+木棍合成"],["矿车","#b0b0b0","铁锭×5合成"],["漏斗矿车","#9a9a9a","矿车+漏斗合成"],["TNT","#c0392b","沙子+火药×5合成"],["黏液块","#5fbf5f","黏液球×9合成"],["蜂蜜块","#e0b040","蜂蜜瓶×4合成"],["营火","#ff8a3a","木棍+煤炭/木炭+原木合成"],["灵魂营火","#7fd0ff","营火+灵魂沙/灵魂土合成"],["钟","#caa046","金锭+红石粉合成"],["灯塔","#7fe0d0","玻璃+下界之星+黑曜石合成"],["末地折跃门","#3a2f6a","击败末影龙生成"]
+]],["下界/末地/特殊",[
+["绯红菌岩","#9a2a4a","下界绯红森林生成"],["诡异菌岩","#2a6a5a","下界诡异森林生成"],["绯红菌索","#c04a6a","绯红森林生成"],["诡异菌索","#3a9a7a","诡异森林生成"],["菌光体","#e0d36a","下界生成"],["下界疣块","#7a2a3a","下界堡垒生成"],["诡异疣块","#2a5a4a","下界堡垒生成"],["垂泪藤","#6a3a7a","下界生成"],["缠怨藤","#3a7a6a","下界生成"],["下界苗","#9a4a3a","下界生成"],["下界疣","#7a2a3a","下界堡垒/堡垒宝箱"],["紫颂植物","#9a6ad0","末地外岛生成"],["紫颂花","#b07ad0","末地外岛生成"],["龙蛋","#7a3a9a","击败末影龙生成"],["强化深板岩","#2f2f3a","试炼密室生成"],["试炼刷怪笼","#caa046","试炼密室生成"],["不祥宝库","#7a5aa0","试炼密室生成"],["合成器","#9a8a6a","1.21新增，合成"],["铜灯","#e0b04a","铜+荧石合成"],["铜门","#b9743f","铜锭合成"],["铜活板门","#a9693f","铜锭合成"],["铜格栅","#c08a4a","铜锭合成"],["涂蜡铜系列","#d98a4a","铜块+蜜脾合成"],["树脂块","#e0c04a","树脂合成"],["树脂砖","#d8b43a","树脂合成"],["蛙明灯（3色）","#ffe04a","对应颜色青蛙吃掉岩浆块生成"],["展示架（12木）","#b5894f","木棍+木板合成"]
+]],["液体",[
+["水","#3a8fbf","桶装水；无限水源"],["熔岩","#bf4500","下界湖/地下岩浆源，桶装"],["气泡柱","#7fc6ff","水+灵魂沙/岩浆块生成"]
+]],["附魔书·武器",[
+["锋利 I-V","#c0a040","附魔台/图书管理员交易/宝箱"],["亡灵杀手 I-V","#c0a040","附魔台/宝箱；对亡灵生物增伤"],["节肢杀手 I-V","#c0a040","附魔台/宝箱；对节肢生物增伤"],["击退 I-II","#c0a040","附魔台；击退距离"],["火焰附加 I-II","#c0a040","附魔台；攻击点燃目标"],["横扫之刃 I-III","#c0a040","Java版专属；横扫攻击增伤"],["抢夺 I-III","#c0a040","附魔台/宝箱；增加掉落物"],["力量 I-V","#c0a040","附魔台；弓箭伤害（仅弓）"],["冲击 I-II","#c0a040","附魔台；箭击退（仅弓）"],["火矢 I","#c0a040","附魔台；箭点燃目标（仅弓）"],["无限 I","#c0a040","附魔台；弓箭无限（需至少1支箭）"],["穿透 I-V","#c0a040","附魔台；箭穿透多个实体（仅弩）"],["快速装填 I-III","#c0a040","附魔台；弩装填速度（仅弩）"],["多重射击 I","#c0a040","附魔台；弩一次射3支箭（仅弩）"]
+]],["附魔书·工具/挖掘",[
+["效率 I-V","#40a0c0","附魔台/图书管理员；挖掘速度"],["精准采集 I","#40a0c0","附魔台/交易/宝箱；采集方块本体"],["时运 I-III","#40a0c0","附魔台/宝箱；增加掉落数量"],["海之眷顾 I-III","#40a0c0","附魔台；钓鱼获得宝藏概率"],["饵钓 I-III","#40a0c0","附魔台；缩短等待时间"],["经验修补 I","#40a0c0","图书管理员村民交易/宝箱"]
+]],["附魔书·防具/通用",[
+["保护 I-V","#40c060","附魔台/宝箱；全面减伤"],["火焰保护 I-IV","#40c060","附魔台；减少火焰伤害"],["摔落保护 I-IV","#40c060","附魔台；减少跌落伤害"],["爆炸保护 I-IV","#40c060","附魔台；减少爆炸伤害"],["弹射物保护 I-IV","#40c060","附魔台；减少弹射物伤害"],["荆棘 I-III","#40c060","附魔台/宝箱；反弹伤害"],["水下呼吸 I-III","#40c060","附魔台/宝箱；延长水下呼吸"],["深海探索者 I-III","#40c060","附魔台；水下移动加速"],["冰霜行者 I-II","#40c060","附魔台；水面结冰（仅靴子）"],["灵魂疾行 I-III","#40c060","堡垒遗迹宝箱/以物易物"],["迅捷潜行 I-III","#40c060","1.21+ 试炼密室；潜行加速"],["耐久 I-III","#40c060","附魔台/宝箱；减少耐久消耗"],["绑定诅咒","#c04040","下界要塞/末地城宝箱"],["消失诅咒","#c04040","末地城/要塞宝箱"]
+]],["工具/武器",[
+["木剑","#b5894f","木板+木棍合成"],["石剑","#888888","圆石+木棍合成"],["铁剑","#d8d8d8","铁锭+木棍合成"],["金剑","#ffe04a","金锭+木棍合成"],["钻石剑","#5ff0ff","钻石+木棍合成"],["下界合金剑","#4a4452","钻石剑+下界合金锭锻造台升级"],["弓","#a9743a","木棍+线+弦合成"],["弩","#8a6a3a","铁锭+木棍+线合成"],["箭","#caa046","木棍+燧石+羽毛合成"],["光灵箭","#7fc6ff","箭+光灵之粉"],["药箭","#c060c0","箭+药水合成"],["三叉戟","#4a7a9a","溺尸低概率掉落"],["盾牌","#9a6a36","木板+铁锭合成"],["打火石","#3a3a3a","铁锭+燧石合成"],["钓鱼竿","#9a6a36","木棍+线合成"],["剪刀","#d8d8d8","铁锭合成"],["刷子","#b0a070","铜锭+红石粉+木棍合成"],["拴绳","#caa046","线+黏液球合成"],["胡萝卜钓竿","#e0922a","钓鱼竿+胡萝卜合成"],["诡异菌钓竿","#2a6a5a","钓鱼竿+诡异菌合成"],["水桶","#3a8fbf","铁锭×3合成"],["熔岩桶","#bf4500","铁桶装熔岩"],["奶桶","#f5f5f5","桶对牛右键"],["细雪桶","#eaf6ff","桶装细雪"],["空地图","#d8c8a0","纸×8+指南针合成"],["藏宝图","#caa046","制图师村民交易"],["探险家地图","#caa046","制图师村民交易"],["指南针","#caa046","铁锭+红石粉合成"],["磁石罗盘","#9a9a9a","指南针+磁石合成"],["时钟","#caa046","金锭+红石粉合成"],["书与笔","#e8e0c0","书+墨水囊+羽毛合成"],["成书","#e8e0c0","书与笔写入内容"],["命名牌","#caa046","钓鱼/要塞宝箱"],["望远镜","#9a9a9a","紫水晶碎片+铜锭合成"],["盔甲架","#9a6a36","木板+平滑石头合成"],["物品展示框","#9a6a36","木棍+皮革合成"],["荧光物品展示框","#7fe0a0","发光墨囊+展示框"]
+]],["防具/装备",[
+["皮革盔甲（头/胸/腿/靴）","#9a6a36","皮革合成"],["锁链盔甲","#9a9a9a","击杀穿锁链僵尸/骷髅掉落"],["铁盔甲","#d8d8d8","铁锭合成"],["金盔甲","#ffe04a","金锭合成"],["钻石盔甲","#5ff0ff","钻石合成"],["下界合金盔甲","#4a4452","钻石盔甲+下界合金锭升级"],["海龟壳","#2a6a5a","海龟鳞甲×5合成"],["鞘翅","#caa046","末地船宝箱"],["马铠（铁/金/钻/下界合金）","#b0b0b0","地牢/要塞/村民交易"],["狼铠","#8a8a8a","1.20+ 战利品"],["不死图腾","#e0c04a","林地府邸唤魔者掉落"]
+]],["食物/饮品",[
+["苹果","#e05a5a","橡树叶掉落"],["金苹果","#ffd84a","金锭包围苹果"],["附魔金苹果","#ffef9a","宝箱获取，不可合成"],["胡萝卜","#e0922a","僵尸掉落/村庄"],["金胡萝卜","#ffd84a","胡萝卜+金粒合成"],["烤马铃薯","#caa46a","马铃薯烤炼"],["毒马铃薯","#7a9a3a","马铃薯低概率掉落"],["牛排","#7a3a2a","牛烤熟"],["熟猪排","#caa05a","猪烤熟"],["熟鸡肉","#d8c08a","鸡烤熟"],["熟羊肉","#caa08a","羊烤熟"],["熟兔肉","#caa09a","兔烤熟"],["熟鳕鱼","#9fd0e0","鳕鱼烤熟"],["熟鲑鱼","#9fd0e0","鲑鱼烤熟"],["热带鱼","#e07aaa","钓鱼/热带鱼桶"],["河豚","#e0e04a","钓鱼，可酿水肺药水"],["面包","#d8c24a","小麦×3合成"],["曲奇","#caa46a","小麦+可可豆合成"],["蛋糕","#e8c08a","牛奶+糖+鸡蛋+小麦"],["南瓜派","#e0922a","南瓜+鸡蛋+糖合成"],["蘑菇煲","#caa46a","红菇+褐菇+碗"],["甜菜汤","#9a2a2a","甜菜根+碗"],["兔肉煲","#caa09a","兔肉+胡萝卜+土豆+碗"],["谜之炖菜","#9ad06a","花朵+碗合成，效果随花变"],["干海带","#9a7a3a","海带烤干"],["发光浆果","#9fe0a0","洞穴藤蔓采集"],["甜浆果","#7a2a4a","针叶林采集"],["紫颂果","#b07ad0","末地外岛"],["爆裂紫颂果","#c98af0","紫颂果烧炼"],["蜂蜜瓶","#e0b040","蜂巢用玻璃瓶采集"],["奶桶","#f5f5f5","清除状态效果"],["腐肉","#7a5a5a","僵尸掉落"],["蜘蛛眼","#3a3a3a","蜘蛛/女巫掉落"]
+]],["材料/掉落物",[
+["煤炭","#222222","煤矿石掉落"],["木炭","#3a3a3a","木头烧炼"],["铁锭","#d8d8d8","铁矿石烧炼"],["金锭","#ffe04a","金矿石烧炼"],["钻石","#5ff0ff","深层钻石矿石"],["绿宝石","#3df08a","山地绿宝石矿"],["青金石","#3a55ff","青金石矿"],["铜锭","#d98a4a","铜矿烧炼"],["下界石英","#efe9dd","下界石英矿"],["紫水晶碎片","#c79bff","紫晶簇掉落"],["粗铁","#9a9a9a","深层矿掉落"],["粗铜","#a9693a","深层矿掉落"],["粗金","#caa83a","深层矿掉落"],["铁粒","#b0b0b0","铁锭分解"],["金粒","#e0c04a","金锭分解"],["下界合金碎片","#4a4452","远古残骸烧炼"],["下界合金锭","#5a5460","碎片+金锭合成"],["骨头","#ece6d2","骷髅掉落"],["骨粉","#f0ecd8","骨头合成"],["羽毛","#f5f5f5","鸡掉落"],["线","#d8d8d8","蜘蛛掉落"],["皮革","#9a6a36","牛/马/驴掉落"],["兔子皮","#caa08a","兔子掉落"],["兔子脚","#e8e0c0","兔子极低概率掉落"],["黏液球","#5fbf5f","史莱姆掉落"],["末影珍珠","#7a5aa0","末影人掉落"],["烈焰棒","#e0a03a","烈焰人掉落"],["烈焰粉","#e8b04a","烈焰棒合成"],["恶魂之泪","#f0f0ff","恶魂掉落"],["岩浆膏","#bf4500","岩浆怪掉落"],["发酵蛛眼","#5a3a5a","蛛眼+糖+蘑菇合成"],["闪烁西瓜片","#e0c04a","西瓜片+金粒合成"],["末影之眼","#7a5aa0","末影珍珠+烈焰粉合成"],["末地水晶","#bfe9ff","玻璃+末影之眼+恶魂之泪+钻石"],["下界之星","#ffef9a","击败凋灵掉落"],["海洋之心","#3a8fbf","海底神殿/探险家地图"],["鹦鹉螺壳","#9a8a6a","溺尸/流浪商人"],["幻翼膜","#bfe9ff","幻翼掉落"],["犰狳鳞甲","#caa08a","犰狳蜷缩后掉落"],["海龟鳞甲","#2a6a5a","小海龟长大掉落"],["墨囊","#222222","鱿鱼掉落"],["荧光墨囊","#7fe0a0","荧光鱿鱼掉落"],["蜜脾","#e0b040","蜂巢采集"],["树脂团","#e0c04a","1.21+ 树干树脂"],["黏土球","#9a6b4f","河底沙块挖"],["糖","#f5f5f5","甘蔗合成"],["纸","#f0f0e0","甘蔗合成"],["书","#e8e0c0","皮革+纸合成"],["碗","#caa46a","木板×3合成"],["红砖","#a14b32","黏土球烧炼"],["下界砖","#6a2f2f","下界岩烧炼"],["回响碎片","#9a9aa0","远古城市"],["唱片残片","#caa046","堡垒/远古城市"],["陶片","#caa88a","考古刷出"],["锻造模板（装甲纹饰）","#b0a070","下界要塞/堡垒/末地城"],["试炼钥匙","#caa046","试炼刷怪笼旁"],["不祥之瓶","#7a3a7a","袭击/试炼"],["附魔之瓶","#7fe0d0","附魔台/村民/宝箱"]
+]],["运输/实体物品",[
+["橡木船","#b5894f","木板×5合成"],["白桦船","#dcc88e","白桦木板合成"],["丛林木船","#b08a4f","丛林木板合成"],["金合欢船","#caa05a","金合欢木板合成"],["深色橡木船","#7a5a32","深色橡木木板合成"],["红树木船","#a85a40","红树木板合成"],["樱花木船","#e7c2d2","樱花木板合成"],["竹船","#bcd07a","竹块合成"],["带箱船","#9a6a36","船+箱子合成"],["矿车","#b0b0b0","铁锭×5合成"],["运输矿车","#9a9a9a","矿车+箱子"],["漏斗矿车","#9a9a9a","矿车+漏斗"],["TNT矿车","#c0392b","矿车+TNT"],["动力矿车","#d6a04a","矿车+熔炉"],["鞍","#9a6a36","地牢/要塞/村民交易"],["烟花火箭","#e0a0ff","纸+火药+星合成"],["烟火之星","#ffd84a","火药+染料合成"],["末影珍珠","#7a5aa0","瞬移用"],["风弹","#bfe9ff","1.20+ 微风弹"]
+]],["药水/酿造",[
+["玻璃瓶","#bfe9ff","玻璃合成"],["水瓶","#bfe9ff","玻璃瓶装水"],["粗制药水","#9ad06a","水瓶+下界疣"],["治疗药水","#ff6a6a","粗制+闪烁西瓜"],["伤害药水","#c0392b","治疗+发酵蛛眼"],["再生药水","#ff8a8a","粗制+恶魂之泪"],["力量药水","#ff4a4a","粗制+烈焰粉"],["迅捷药水","#ffe04a","粗制+糖"],["防火药水","#ff8a3a","粗制+岩浆膏"],["水下呼吸药水","#3a8fbf","粗制+海龟壳"],["夜视药水","#7fc6ff","粗制+金胡萝卜"],["隐身药水","#cfd8e0","夜视+发酵蛛眼"],["迟缓药水","#9a9ad0","粗制+兔子脚"],["缓慢药水","#9a9ad0","迟缓+红石"],["跳跃药水","#9fe0a0","粗制+兔子脚"],["缓降水药水","#7fc6ff","粗制+幻翼膜"],["虚弱药水","#9a9a9a","水瓶+红石粉"],["喷溅药水","#c060c0","任意药水+火药"],["滞留药水","#a060d0","喷溅+龙息"],["龙息","#7aff7a","末影龙攻击时瓶接"]
+]],["唱片",[
+["13","#cccccc","苦力怕被骷髅射死掉落"],["cat","#dddddd","同上"],["blocks","#cccccc","同上"],["chirp","#e8c08a","同上"],["far","#9fd0e0","同上"],["mall","#e0a0ff","同上"],["mellohi","#ffd84a","同上"],["stal","#caa046","同上"],["strad","#d8c24a","同上"],["ward","#9a9ad0","同上"],["11","#222222","同上"],["wait","#bbbbbb","同上"],["Pigstep","#c060c0","堡垒遗迹宝箱"],["otherside","#7fc6ff","要塞/堡垒宝箱"],["5","#ff8a3a","新版本宝箱"],["Relic","#e0c04a","新版本宝箱"],["Creator","#e07aaa","新版本宝箱"],["Creator(八音盒)","#e8a0c0","新版本宝箱"],["Precipice","#7fa0ff","新版本宝箱"],["Tears","#9fe0ff","新版本宝箱"],["Lava Chicken","#ff6a3a","鸡骑士小僵尸掉落"]
+]],["染料（16色）",[
+["黑染料","#222222","墨囊"],["红染料","#c0392b","罂粟/甜菜根"],["绿染料","#2e8b57","仙人掌烧炼"],["棕染料","#8b5a2b","可可豆"],["蓝染料","#2f4fd0","青金石"],["紫染料","#8e44ad","红+蓝"],["青染料","#16a085","海泡菜"],["银染料","#bdc3c7","骨粉+黑"],["浅灰染料","#d0d3d8","白+灰"],["粉染料","#ff9ff3","红+白"],["黄染料","#f1c40f","向日葵"],["亮红染料","#ff6b6b","红+粉"],["亮绿染料","#55efc4","绿+白"],["亮蓝染料","#74b9ff","蓝+白"],["品红染料","#e056fd","粉+紫"],["橙染料","#e67e22","红+黄"]
+]]];
+
+const KEY="mc_all_survival_blocks_v6";
+let data=JSON.parse(localStorage.getItem(KEY)||"{}");
+const app=document.getElementById("app");
+const search=document.getElementById("search");
+let flat=[];
+let allCollapsed=false;
+
+groups.forEach((g,gi)=>{
+  const cat=document.createElement("div");
+  cat.className="cat";
+  cat.dataset.cat=g[0];
+  cat.textContent=g[0];
+  app.appendChild(cat);
+  const grid=document.createElement("div");
+  grid.className="grid";
+  g[1].forEach((it,i)=>{
+    const id=gi+"_"+i;
+    flat.push({id,name:it[0]});
+    const el=document.createElement("div");
+    el.className="item"+(data[id]?" have":"");
+    el.dataset.name=it[0];
+    el.innerHTML=`<div class="info-btn" data-idx="${gi}_${i}">?</div><div class="sw" style="background:${it[1]}"></div>${it[0]}`;
+    el.onclick=(e)=>{
+      if(e.target.classList.contains("info-btn")){e.stopPropagation();showInfo(gi,i);return}
+      data[id]=!data[id];
+      localStorage.setItem(KEY,JSON.stringify(data));
+      el.classList.toggle("have",data[id]);
+      updateBar();
+    };
+    grid.appendChild(el);
+  });
+  app.appendChild(grid);
+});
+
+function updateBar(){
+  const total=flat.length;
+  const cnt=flat.filter(x=>data[x.id]).length;
+  document.getElementById("total").textContent=total;
+  document.getElementById("cnt").textContent=cnt;
+  document.getElementById("rate").textContent=Math.round(cnt/total*100)+"%";
+}
+updateBar();
+
+search.oninput=()=>{
+  const q=search.value.trim().toLowerCase();
+  document.querySelectorAll(".item").forEach(el=>{
+    const name=el.dataset.name.toLowerCase();
+    const infoBtn=el.querySelector(".info-btn");
+    const idx=infoBtn?infoBtn.dataset.idx:null;
+    let match=q==="";
+    if(!match){match=name.includes(q);if(!match&&idx){const [gi,i]=idx.split("_").map(Number);const desc=groups[gi][1][i][2]||"";match=desc.toLowerCase().includes(q)}}
+    el.classList.toggle("hidden",!match);
+  });
+  document.querySelectorAll(".cat").forEach(cat=>{
+    let any=false;const grid=cat.nextElementSibling;
+    if(grid&&grid.classList.contains("grid")){grid.querySelectorAll(".item").forEach(el=>{if(!el.classList.contains("hidden"))any=true});cat.style.display=any?"block":"none"}
+  });
+};
+
+function showInfo(gi,i){
+  const item=groups[gi][1][i];
+  document.getElementById("modalTitle").textContent=item[0];
+  const tags=document.getElementById("modalTags");tags.innerHTML="";
+  ["世界生成","精准采集","合成","烧炼","挖掘","战利品","采集","交易"].forEach(s=>{
+    if((item[2]||"").includes(s)){const tag=document.createElement("span");tag.className="source-tag";tag.textContent=s;tags.appendChild(tag)}
+  });
+  document.getElementById("modalDesc").textContent=item[2]||"暂无获取方式说明";
+  document.getElementById("modal").classList.add("active");
+}
+function closeModal(){document.getElementById("modal").classList.remove("active")}
+document.getElementById("modal").addEventListener("click",function(e){if(e.target===this)closeModal()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal()});
+
+function toggleAll(){allCollapsed=!allCollapsed;document.querySelectorAll(".grid").forEach(g=>{g.style.display=allCollapsed?"none":"grid"});document.querySelectorAll(".cat").forEach(c=>{c.style.display=allCollapsed?"none":"block"})}
+function markAll(){flat.forEach(x=>{data[x.id]=true});localStorage.setItem(KEY,JSON.stringify(data));document.querySelectorAll(".item").forEach(el=>el.classList.add("have"));updateBar()}
+function clearAll(){flat.forEach(x=>{data[x.id]=false});localStorage.setItem(KEY,JSON.stringify(data));document.querySelectorAll(".item").forEach(el=>el.classList.remove("have"));updateBar()}
+function exportData(){const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="mc_progress.json";a.click()}
+function importData(){document.getElementById("fileInput").click()}
+function handleImport(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);Object.assign(data,d);localStorage.setItem(KEY,JSON.stringify(data));location.reload()}catch(err){alert("文件格式错误")}};r.readAsText(f)}
+
+function switchTab(tabId,el){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  el.classList.add('active');
+}
+
+const NOTICE_KEY="mc_notice_v5";
+const noticeModal=document.getElementById("noticeModal");
+const noticeDot=document.getElementById("noticeDot");
+if(!localStorage.getItem(NOTICE_KEY)){noticeDot.style.display="block";noticeModal.classList.add("active")}else{noticeDot.style.display="none"}
+function showNotice(){noticeModal.classList.add("active");if(noticeDot.style.display!=="none"){noticeDot.style.display="none";localStorage.setItem(NOTICE_KEY,"read")}}
+function closeNotice(){noticeModal.classList.remove("active")}
+noticeModal.addEventListener("click",function(e){if(e.target===this)closeNotice()});
+
+const achievements=[
+  "击杀第一只羊（获得皮革）","制作第一张床","挖到第一块铁","制作全套铁盔甲",
+  "挖到第一颗钻石","击败末影龙","获得鞘翅","击败凋灵","升级全套下界合金装备",
+  "酿造第一瓶药水","附魔第一件装备","找到要塞","进入末地","获得不死图腾",
+  "驯服一匹马","建造信标","完成村民交易","获得附魔金苹果"
+];
+const achDiv=document.getElementById("achievements");
+achievements.forEach((a,i)=>{
+  const row=document.createElement("label");
+  row.className="achievement-item";
+  row.innerHTML=`<input type="checkbox"> <span>${a}</span>`;
+  achDiv.appendChild(row);
+});
+</script>
+</body>
+</html>
